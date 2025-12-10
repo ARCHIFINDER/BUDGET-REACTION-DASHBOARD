@@ -1,0 +1,49 @@
+# save as x_recent_search_tweepy.py
+import tweepy
+import pandas as pd
+from datetime import datetime, timezone
+
+BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAGsx4wEAAAAAvCk6cH3Pm6F5C%2FkYH4x%2BbFJ8xe8%3DTZnBswbjjVuMrKp2KJAee9HD3tNBcSjSWamdUMqhDi7pMSwSbi"
+QUERY = "budget reaction -is:retweet lang:en"
+MAX_RESULTS = 100  # per request up to the endpoint limit
+OUTPUT_CSV = "x_recent_search_tweepy.csv"
+
+client = tweepy.Client(bearer_token=BEARER_TOKEN, wait_on_rate_limit=True)
+
+def collect_recent(query, max_results=100, limit_pages=10):
+    rows = []
+    paginator = tweepy.Paginator(
+        client.search_recent_tweets,
+        query,
+        tweet_fields=['id', 'text', 'author_id', 'created_at', 'public_metrics'],
+        user_fields=['username', 'name', 'verified'],
+        expansions=['author_id'],
+        max_results=max_results
+    )
+    pages = 0
+    for response in paginator:
+        pages += 1
+        tweets = response.data or []
+        users = {u.id: u for u in (response.includes.get('users') if response.includes else [])}
+        for t in tweets:
+            user = users.get(t.author_id)
+            rows.append({
+                "id": t.id,
+                "created_at": t.created_at,
+                "text": t.text,
+                "author_id": t.author_id,
+                "author_username": user.username if user else None,
+                "retweet_count": t.public_metrics.get("retweet_count") if t.public_metrics else None
+            })
+        if limit_pages and pages >= limit_pages:
+            break
+    return pd.DataFrame(rows)
+
+if __name__ == "__main__":
+    start = datetime.now(timezone.utc)
+    print("Collecting...")
+    df = collect_recent(QUERY, max_results=MAX_RESULTS, limit_pages=5)
+    print("Collected rows:", len(df))
+    df.to_csv(OUTPUT_CSV, index=False)
+    print("Saved to", OUTPUT_CSV)
+    print("Elapsed:", datetime.now(timezone.utc) - start)
