@@ -1,0 +1,57 @@
+import pandas as pd
+
+# ------------------------------
+# 1. DATA COLLECTION
+# ------------------------------
+
+# Load CSV data using full file path
+df = pd.read_csv("C:\\Users\\HP Victus\\DEV PRO\\unclean_budget_reactions.csv")
+
+print("Raw Data Loaded:")
+print(df.head())
+
+# ------------------------------
+# 2. DATA PREPROCESSING
+# ------------------------------
+
+# Convert timestamp column to datetime format
+df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+
+# Remove duplicate rows
+df = df.drop_duplicates()
+
+# Handle missing values
+df = df.fillna({
+    'reaction_text': '',
+    'sentiment': 'Neutral',
+    'sentiment_score': 0,
+    'income_group': 'Unknown',
+    'sector': 'Unknown'
+})
+
+# Clean text: strip extra spaces
+df['reaction_text'] = df['reaction_text'].str.strip()
+
+# Convert sentiment labels to title case (uniform format)
+df['sentiment'] = df['sentiment'].str.title()
+
+# Convert sentiment score to numeric (safe conversion)
+df['sentiment_score'] = pd.to_numeric(df['sentiment_score'], errors='coerce').fillna(0)
+
+# Extract date & time features
+df['date'] = df['timestamp'].dt.date
+df['hour'] = df['timestamp'].dt.hour
+
+# ------------------------------
+# 3. DISPLAY CLEANED DATA
+# ------------------------------
+print("\nCleaned Data:")
+print(df.head())
+
+# ------------------------------
+# 4. SAVE CLEAN DATA
+# ------------------------------
+
+df.to_csv(r"C:\Users\HP Victus\Downloads\cleaned_budget_reactions.csv", index=False)
+
+print("\nCleaned dataset saved to C:\\Users\\HP Victus\\Downloads\\cleaned_budget_reactions.csv")
